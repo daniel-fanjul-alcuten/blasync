@@ -1,6 +1,7 @@
 package com.spotify.blasync;
 
 import java.io.Serializable;
+import java.util.List;
 
 public class UserInfo implements Serializable {
 
@@ -9,6 +10,8 @@ public class UserInfo implements Serializable {
 	private String username;
 
 	private String metadata;
+
+	private List<PlaylistInfo> playlists;
 
 	public UserInfo(String username, String metadata) {
 		super();
@@ -30,5 +33,13 @@ public class UserInfo implements Serializable {
 
 	public void setMetadata(String metadata) {
 		this.metadata = metadata;
+	}
+
+	public List<PlaylistInfo> getPlaylists() {
+		return playlists;
+	}
+
+	public void setPlaylists(List<PlaylistInfo> playlists) {
+		this.playlists = playlists;
 	}
 }

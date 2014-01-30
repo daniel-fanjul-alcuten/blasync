@@ -14,6 +14,7 @@ import java.util.List;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.sun.codemodel.ClassType;
 import com.sun.codemodel.JCatchBlock;
+import com.sun.codemodel.JClass;
 import com.sun.codemodel.JClassAlreadyExistsException;
 import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JDefinedClass;
@@ -269,9 +270,9 @@ public class WrapperGenerator {
 
 			ArrayList<String> methodId = new ArrayList<String>();
 			methodId.add(method.getName());
-			Type[] parameterTypes = method.getGenericParameterTypes();
-			for (int i = 0; i < parameterTypes.length; i++) {
-				methodId.add(wrapperClassName(parameterTypes[i]));
+			Class<?>[] parameterClasses = method.getParameterTypes();
+			for (int i = 0; i < parameterClasses.length; i++) {
+				methodId.add(wrapperClassName(parameterClasses[i]));
 			}
 			if (processedMethods.contains(methodId)) {
 				continue;
@@ -290,8 +291,16 @@ public class WrapperGenerator {
 			JMethod jmethod = jnwclazz.method(mod, jnwclazz, method.getName());
 
 			// Pojo class: params
-			JVar jvalue = jmethod.param(
-					model.ref(wrapperClassName(parameterTypes[0])), "value");
+			Type parameterType = method.getGenericParameterTypes()[0];
+			Type listType = getListType(parameterType);
+			JClass jparameterType;
+			if (listType == null) {
+				jparameterType = model.ref(List.class).narrow(
+						model.ref(wrapperClassName(parameterType)));
+			} else {
+				jparameterType = model.ref(wrapperClassName(listType));
+			}
+			JVar jvalue = jmethod.param(jparameterType, "value");
 
 			// Pojo class: body
 			JVar jgetMethod = generateGetMethod(model, jmethod, clazz, method);
@@ -456,6 +465,10 @@ public class WrapperGenerator {
 		if (futuredType != null) {
 			type = futuredType;
 		}
+		Type listType = getListType(type);
+		if (listType != null) {
+			type = listType;
+		}
 		return allowedClasses.contains(type);
 	}
 
@@ -463,6 +476,16 @@ public class WrapperGenerator {
 		if (type instanceof ParameterizedType) {
 			ParameterizedType ptype = (ParameterizedType) type;
 			if (ptype.getRawType() == ListenableFuture.class) {
+				return ptype.getActualTypeArguments()[0];
+			}
+		}
+		return null;
+	}
+
+	private Type getListType(Type type) {
+		if (type instanceof ParameterizedType) {
+			ParameterizedType ptype = (ParameterizedType) type;
+			if (ptype.getRawType() == List.class) {
 				return ptype.getActualTypeArguments()[0];
 			}
 		}
